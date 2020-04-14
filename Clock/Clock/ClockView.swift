@@ -19,6 +19,7 @@ struct Hand {
     var value: Int = 0
 }
 
+// Tells the storyboard to render this view using the draw method and show it on the storyboard itself
 @IBDesignable
 class ClockView: UIView {
     
@@ -89,61 +90,129 @@ class ClockView: UIView {
         /// Note: elements are drawn on the the screen from back to front
         /// in the order they appear below.
         
+        // The canvas that we will draw on
         if let context = UIGraphicsGetCurrentContext() {
             
             // clock face
             
+            context.addEllipse(in: rect)
+            context.setFillColor(clockBgColor.cgColor)
+            context.fillPath()
+            
             // clock's border
             
-            // numerals
-//            let clockCenter = CGPoint(x: rect.size.width / 2.0,
-//                                      y: rect.size.height / 2.0)
-//            let numeralDistanceFromCenter = rect.size.width / 2.0 - digitFont.lineHeight / 4.0 - digitOffset
-//            let offset = 3 // offsets numerals, putting "12" at the top of the clock
-//
-//            for i in 1...12 {
-//                let hourString: NSString
-//                if i < 10 {
-//                    hourString = " \(i)" as NSString
-//                } else {
-//                    hourString = "\(i)" as NSString
-//                }
-//                let labelX = clockCenter.x + (numeralDistanceFromCenter - digitFont.lineHeight / 2.0)
-//                    * CGFloat(cos((Double.pi / 180) * Double(i + offset) * 30 + Double.pi))
-//                let labelY = clockCenter.y - 1 * (numeralDistanceFromCenter - digitFont.lineHeight / 2.0)
-//                    * CGFloat(sin((Double.pi / 180) * Double(i + offset) * 30))
-//                hourString.draw(in: CGRect(x: labelX - digitFont.lineHeight / 2.0,
-//                                           y: labelY - digitFont.lineHeight / 2.0,
-//                                           width: digitFont.lineHeight,
-//                                           height: digitFont.lineHeight),
-//                                withAttributes: [NSAttributedString.Key.foregroundColor: digitColor,
-//                                                 NSAttributedString.Key.font: digitFont])
-//            }
+            let borderRect = CGRect(x: rect.origin.x + borderWidth / 2,
+                                    y: rect.origin.y + borderWidth / 2,
+                                    width: rect.width - borderWidth,
+                                    height: rect.height - borderWidth)
             
-            // minute hand
+            context.addEllipse(in: borderRect)
+            context.setLineWidth(borderWidth)
+            context.setStrokeColor(borderColor.cgColor)
+            context.strokePath()
             
-            // hour hand
+            //             numerals
+            let clockCenter = CGPoint(x: rect.size.width / 2.0,
+                                      y: rect.size.height / 2.0)
+            let numeralDistanceFromCenter = rect.size.width / 2.0 - digitFont.lineHeight / 4.0 - digitOffset
+            let offset = 3 // offsets numerals, putting "12" at the top of the clock
             
-            // hour/minute's center
+            for i in 1...12 {
+                let hourString: NSString
+                if i < 10 {
+                    hourString = " \(i)" as NSString
+                } else {
+                    hourString = "\(i)" as NSString
+                }
+                let labelX = clockCenter.x + (numeralDistanceFromCenter - digitFont.lineHeight / 2.0)
+                    * CGFloat(cos((Double.pi / 180) * Double(i + offset) * 30 + Double.pi))
+                let labelY = clockCenter.y - 1 * (numeralDistanceFromCenter - digitFont.lineHeight / 2.0)
+                    * CGFloat(sin((Double.pi / 180) * Double(i + offset) * 30))
+                hourString.draw(in: CGRect(x: labelX - digitFont.lineHeight / 2.0,
+                                           y: labelY - digitFont.lineHeight / 2.0,
+                                           width: digitFont.lineHeight,
+                                           height: digitFont.lineHeight),
+                                withAttributes: [NSAttributedString.Key.foregroundColor: digitColor,
+                                                 NSAttributedString.Key.font: digitFont])
+            }
             
-            // second hand
+            //             minute hand
             
-            // second's center
+            context.beginPath()
+            context.move(to: clockCenter)
+            context.addLine(to: minuteHandEndPoint)
             
+            context.setStrokeColor(minutes.color.cgColor)
+            context.setLineWidth(minutes.width)
+            context.strokePath()
+            
+            //             hour hand
+            
+            context.beginPath()
+            context.move(to: clockCenter)
+            context.addLine(to: hourHandEndPoint)
+            
+            context.setStrokeColor(hours.color.cgColor)
+            context.setLineWidth(minutes.width)
+            context.strokePath()
+            
+            //             hour/minute's center
+            
+            let dotRadius: CGFloat = 6.0
+            let dotRect = CGRect(x: clockCenter.x - dotRadius,
+                                 y: clockCenter.y - dotRadius,
+                                 width: dotRadius * 2,
+                                 height: dotRadius * 2)
+            context.addEllipse(in: dotRect)
+            context.setFillColor(hours.color.cgColor)
+            context.fillPath()
+            
+            //             second hand
+            
+            context.beginPath()
+            context.move(to: clockCenter)
+            context.addLine(to: secondHandEndPoint)
+            
+            context.setStrokeColor(seconds.color.cgColor)
+            context.setLineWidth(seconds.width)
+            context.strokePath()
+            
+            //             second's center
+            
+            let secondDotRadius: CGFloat = 3.0
+            let secondDotRect = CGRect(x: clockCenter.x - secondDotRadius,
+                                       y: clockCenter.y - secondDotRadius,
+                                       width: secondDotRadius * 2,
+                                       height: secondDotRadius * 2)
+            context.addEllipse(in: secondDotRect)
+            context.setFillColor(seconds.color.cgColor)
+            context.fillPath()
         }
     }
     
     @objc func timerFired(_ sender: CADisplayLink) {
         // Get current time
         
+        let currentTime = Date()
+        
         // Get calendar and set timezone
+        
+        var calender = Calendar(identifier: .gregorian)
+        calender.timeZone = timezone!
         
         // Extract hour, minute, second components from current time
         
+        let timeComponents = calender.dateComponents([.hour, .minute, .second], from: currentTime)
+        
         // Set above components to hours, minutes, seconds properties
+        
+        hours.value = timeComponents.hour ?? 0
+        minutes.value = timeComponents.minute ?? 0
+        seconds.value = timeComponents.second ?? 0
         
         // Trigger a screen refresh
         
+        setNeedsDisplay()
     }
     
     deinit {
